@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   LayoutDashboard,
   Receipt,
@@ -10,6 +10,8 @@ import {
   Search,
   Bell,
   ChevronDown,
+  LockKeyhole,
+  Mail,
 } from "lucide-react";
 
 import {
@@ -79,6 +81,18 @@ const expenses = [
 
 function App() {
   const [activePage, setActivePage] = useState("Dashboard");
+  const [authenticated, setAuthenticated] = useState(() => localStorage.getItem("spendly-auth") === "true");
+  const [expenseList, setExpenseList] = useState(expenses);
+  const [budgetList, setBudgetList] = useState(budgetData);
+
+  if (!authenticated) {
+    return <Login onLogin={() => { localStorage.setItem("spendly-auth", "true"); setAuthenticated(true); }} />;
+  }
+
+  const addExpense = (expense) => {
+    setExpenseList((current) => [{ ...expense, id: Date.now() }, ...current]);
+    setActivePage("Expenses");
+  };
 
   const navigation = [
     { name: "Dashboard", icon: LayoutDashboard },
@@ -144,23 +158,37 @@ function App() {
                 <Bell size={19} />
               </button>
 
-              <div className="hidden items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 sm:flex">
+              <button onClick={() => { localStorage.removeItem("spendly-auth"); setAuthenticated(false); }} className="hidden items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 sm:flex">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">
                   J
                 </div>
                 <span className="text-sm font-medium">Janvi</span>
                 <ChevronDown size={15} />
-              </div>
+              </button>
             </div>
           </div>
         </header>
 
         <div className="mx-auto max-w-7xl p-5 lg:p-8">
-          {activePage === "Dashboard" && <Dashboard />}
-          {activePage === "Expenses" && <Expenses />}
-          {activePage === "Add Expense" && <AddExpense />}
-          {activePage === "Budgets" && <Budgets />}
-          {activePage === "More" && <More />}
+          {activePage === "Dashboard" && (
+            <Dashboard
+              expenseList={expenseList}
+              budgetList={budgetList}
+              onAddExpense={() => setActivePage("Add Expense")}
+              onViewExpenses={() => setActivePage("Expenses")}
+            />
+          )}
+          {activePage === "Expenses" && (
+            <Expenses
+              expenseList={expenseList}
+              onAddExpense={() => setActivePage("Add Expense")}
+            />
+          )}
+          {activePage === "Add Expense" && <AddExpense onSave={addExpense} />}
+          {activePage === "Budgets" && (
+            <Budgets budgetList={budgetList} onChange={setBudgetList} />
+          )}
+          {activePage === "More" && <More expenseList={expenseList} />}
         </div>
       </main>
 
@@ -190,7 +218,73 @@ function App() {
   );
 }
 
-function Dashboard() {
+function Login({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const submitLogin = (event) => {
+    event.preventDefault();
+    if (!email.trim() || !email.includes("@")) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    onLogin();
+  };
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 px-5 py-10">
+      <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl md:grid-cols-2">
+        <div className="hidden bg-indigo-600 p-10 text-white md:flex md:flex-col md:justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-lg font-bold text-indigo-600">S</div>
+              <span className="text-lg font-bold">Spendly</span>
+            </div>
+            <h1 className="mt-24 text-4xl font-bold leading-tight">Your money,<br />made clearer.</h1>
+            <p className="mt-5 max-w-xs text-indigo-100">A calmer way to understand every rupee you spend.</p>
+          </div>
+          <p className="text-sm text-indigo-200">Personal finance, without the friction.</p>
+        </div>
+
+        <form onSubmit={submitLogin} className="p-7 sm:p-10">
+          <div className="mb-10 md:hidden">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-lg font-bold text-white">S</div>
+          </div>
+          <p className="text-sm font-semibold text-indigo-600">Welcome back</p>
+          <h2 className="mt-2 text-3xl font-bold text-slate-900">Sign in to Spendly</h2>
+          <p className="mt-2 text-sm text-slate-500">Pick up where you left off.</p>
+
+          <label htmlFor="login-email" className="mt-8 block text-sm font-medium text-slate-700">Email address</label>
+          <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 focus-within:border-indigo-500">
+            <Mail size={18} className="text-slate-400" />
+            <input id="login-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="w-full outline-none" />
+          </div>
+
+          <label htmlFor="login-password" className="mt-5 block text-sm font-medium text-slate-700">Password</label>
+          <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 focus-within:border-indigo-500">
+            <LockKeyhole size={18} className="text-slate-400" />
+            <input id="login-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 6 characters" className="w-full outline-none" />
+          </div>
+
+          {error && <p role="alert" className="mt-4 text-sm text-rose-600">{error}</p>}
+          <button type="submit" className="mt-7 w-full rounded-xl bg-indigo-600 px-4 py-3.5 font-semibold text-white hover:bg-indigo-700">Sign in</button>
+          <p className="mt-6 text-center text-sm text-slate-500">Forgot your password? <button type="button" onClick={() => setError("Password recovery will be available once authentication is connected.")} className="font-semibold text-indigo-600">Reset it</button></p>
+        </form>
+      </div>
+    </main>
+  );
+}
+
+function Dashboard({ expenseList, budgetList, onAddExpense, onViewExpenses }) {
+  const totalSpent = expenseList.reduce((total, expense) => total + Number(expense.amount), 0);
+  const totalBudget = budgetList.reduce((total, item) => total + Number(item.budget), 0);
+  const remaining = Math.max(totalBudget - totalSpent, 0);
+
   return (
     <div className="space-y-6">
   
@@ -198,13 +292,13 @@ function Dashboard() {
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
           <div>
             <p className="mb-2 text-sm text-indigo-200">September 2026</p>
-            <h3 className="text-3xl font-bold">₹12,450</h3>
+            <h3 className="text-3xl font-bold">₹{totalSpent.toLocaleString()}</h3>
             <p className="mt-2 text-sm text-indigo-100">
               Total spending this month
             </p>
           </div>
 
-          <button className="flex w-fit items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-600">
+          <button onClick={onAddExpense} className="flex w-fit items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-600">
             <Plus size={18} />
             Add expense
           </button>
@@ -214,29 +308,29 @@ function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Spent"
-          value="₹12,450"
+          value={`₹${totalSpent.toLocaleString()}`}
           change="+8.2%"
           positive={false}
         />
 
         <StatCard
           title="Monthly Budget"
-          value="₹20,000"
+          value={`₹${totalBudget.toLocaleString()}`}
           change="62.2% used"
           positive
         />
 
         <StatCard
           title="Remaining"
-          value="₹7,550"
+          value={`₹${remaining.toLocaleString()}`}
           change="37.8% left"
           positive
         />
 
         <StatCard
           title="Transactions"
-          value="42"
-          change="+6 this month"
+          value={expenseList.length}
+          change="this month"
           positive
         />
       </div>
@@ -315,12 +409,12 @@ function Dashboard() {
 
         <Card title="Recent expenses">
           <div className="space-y-3">
-            {expenses.map((expense) => (
-              <ExpenseRow key={expense.merchant} expense={expense} />
+            {expenseList.slice(0, 4).map((expense) => (
+              <ExpenseRow key={expense.id || expense.merchant} expense={expense} />
             ))}
           </div>
 
-          <button className="mt-5 w-full rounded-xl bg-slate-100 py-3 text-sm font-semibold text-slate-600">
+          <button onClick={onViewExpenses} className="mt-5 w-full rounded-xl bg-slate-100 py-3 text-sm font-semibold text-slate-600">
             View all expenses
           </button>
         </Card>
@@ -393,7 +487,20 @@ function ExpenseRow({ expense }) {
   );
 }
 
-function Expenses() {
+function Expenses({ expenseList, onAddExpense }) {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All categories");
+  const [sort, setSort] = useState("newest");
+  const filteredExpenses = expenseList
+    .filter((expense) => expense.merchant.toLowerCase().includes(search.toLowerCase()))
+    .filter((expense) => category === "All categories" || expense.category === category)
+    .sort((first, second) => {
+      if (sort === "highest") return second.amount - first.amount;
+      if (sort === "lowest") return first.amount - second.amount;
+      if (sort === "oldest") return String(first.date).localeCompare(String(second.date));
+      return String(second.date).localeCompare(String(first.date));
+    });
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -404,7 +511,7 @@ function Expenses() {
           </p>
         </div>
 
-        <button className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white">
+        <button onClick={onAddExpense} className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white">
           <Plus size={18} />
           Add expense
         </button>
@@ -412,11 +519,13 @@ function Expenses() {
 
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:flex-row">
         <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
           placeholder="Search merchant..."
           className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500 md:flex-1"
         />
 
-        <select className="rounded-xl border border-slate-200 px-4 py-3">
+        <select value={category} onChange={(event) => setCategory(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3">
           <option>All categories</option>
           <option>Food</option>
           <option>Transport</option>
@@ -424,24 +533,38 @@ function Expenses() {
           <option>Bills</option>
         </select>
 
-        <select className="rounded-xl border border-slate-200 px-4 py-3">
-          <option>Newest first</option>
-          <option>Oldest first</option>
-          <option>Highest amount</option>
-          <option>Lowest amount</option>
+        <select value={sort} onChange={(event) => setSort(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="highest">Highest amount</option>
+          <option value="lowest">Lowest amount</option>
         </select>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        {expenses.map((expense) => (
-          <ExpenseRow key={expense.merchant} expense={expense} />
+        {filteredExpenses.map((expense) => (
+          <ExpenseRow key={expense.id || expense.merchant} expense={expense} />
         ))}
+        {!filteredExpenses.length && <p className="p-6 text-sm text-slate-500">No expenses found.</p>}
       </div>
     </div>
   );
 }
 
-function AddExpense() {
+function AddExpense({ onSave }) {
+  const [form, setForm] = useState({ amount: "", merchant: "", category: "Food", date: "", notes: "" });
+  const [error, setError] = useState("");
+
+  const updateField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const saveExpense = (event) => {
+    event.preventDefault();
+    if (!form.merchant.trim() || !form.amount || Number(form.amount) <= 0) {
+      setError("Enter a merchant and an amount greater than zero.");
+      return;
+    }
+    onSave({ ...form, amount: Number(form.amount), date: form.date || "Today" });
+  };
+
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6">
@@ -451,7 +574,7 @@ function AddExpense() {
         </p>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+      <form onSubmit={saveExpense} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
         <label className="text-sm font-medium text-slate-600">Amount</label>
 
         <div className="mt-2 flex items-center rounded-2xl bg-slate-50 px-5 py-4">
@@ -459,6 +582,8 @@ function AddExpense() {
 
           <input
             type="number"
+            value={form.amount}
+            onChange={(event) => updateField("amount", event.target.value)}
             placeholder="0.00"
             className="w-full bg-transparent text-3xl font-bold outline-none"
           />
@@ -467,13 +592,15 @@ function AddExpense() {
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <FormField label="Merchant">
             <input
+              value={form.merchant}
+              onChange={(event) => updateField("merchant", event.target.value)}
               placeholder="e.g. Amazon"
               className="input"
             />
           </FormField>
 
           <FormField label="Category">
-            <select className="input">
+            <select value={form.category} onChange={(event) => updateField("category", event.target.value)} className="input">
               <option>Food</option>
               <option>Groceries</option>
               <option>Transport</option>
@@ -486,22 +613,24 @@ function AddExpense() {
           </FormField>
 
           <FormField label="Date">
-            <input type="date" className="input" />
+            <input value={form.date} onChange={(event) => updateField("date", event.target.value)} type="date" className="input" />
           </FormField>
 
           <FormField label="Notes">
-            <input placeholder="Optional" className="input" />
+            <input value={form.notes} onChange={(event) => updateField("notes", event.target.value)} placeholder="Optional" className="input" />
           </FormField>
         </div>
 
-        <button className="mt-8 w-full rounded-2xl bg-indigo-600 py-4 font-semibold text-white hover:bg-indigo-700">
+        {error && <p className="mt-5 text-sm text-rose-600">{error}</p>}
+
+        <button type="submit" className="mt-8 w-full rounded-2xl bg-indigo-600 py-4 font-semibold text-white hover:bg-indigo-700">
           Save expense
         </button>
 
-        <button className="mt-3 w-full rounded-2xl border border-slate-200 py-4 font-semibold text-slate-600">
+        <button type="button" onClick={() => setError("Receipt scanning is not connected yet.")} className="mt-3 w-full rounded-2xl border border-slate-200 py-4 font-semibold text-slate-600">
           📷 Scan receipt instead
         </button>
-      </div>
+      </form>
     </div>
   );
 }
@@ -515,7 +644,7 @@ function FormField({ label, children }) {
   );
 }
 
-function Budgets() {
+function Budgets({ budgetList, onChange }) {
   return (
     <div className="space-y-6">
       <div>
@@ -526,7 +655,7 @@ function Budgets() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {budgetData.map((item) => {
+        {budgetList.map((item) => {
           const percentage = Math.round((item.actual / item.budget) * 100);
 
           return (
@@ -537,9 +666,15 @@ function Budgets() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold">{item.category}</p>
-                  <p className="text-sm text-slate-400">
-                    ₹{item.actual} of ₹{item.budget}
-                  </p>
+                  <p className="text-sm text-slate-400">₹{item.actual} of</p>
+                  <input
+                    aria-label={`${item.category} budget`}
+                    type="number"
+                    min="0"
+                    value={item.budget}
+                    onChange={(event) => onChange((current) => current.map((budget) => budget.category === item.category ? { ...budget, budget: Number(event.target.value) } : budget))}
+                    className="mt-1 w-28 rounded-lg border border-slate-200 px-2 py-1 text-sm font-semibold"
+                  />
                 </div>
 
                 <span
@@ -575,23 +710,63 @@ function Budgets() {
   );
 }
 
-function More() {
+function More({ expenseList }) {
+  const receiptInput = useRef(null);
+  const [receiptName, setReceiptName] = useState("");
+  const [showContacts, setShowContacts] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
+  const [splitExpense, setSplitExpense] = useState(expenseList[0]?.id || expenseList[0]?.merchant || "");
+  const [people, setPeople] = useState(2);
+  const [message, setMessage] = useState("");
+
+  const exportCsv = () => {
+    const header = "Merchant,Category,Date,Amount,Notes";
+    const rows = expenseList.map((expense) => [expense.merchant, expense.category, expense.date, expense.amount, expense.notes || ""]
+      .map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","));
+    const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "spendly-expenses.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    setMessage("CSV downloaded.");
+  };
+
+  const selectedExpense = expenseList.find((expense) => (expense.id || expense.merchant) === splitExpense);
+
   return (
     <div>
       <h3 className="text-2xl font-bold">More</h3>
 
       <div className="mt-5 space-y-3">
-        {["Scan receipt", "Contacts", "Split expenses", "Export CSV"].map(
-          (item) => (
-            <button
-              key={item}
-              className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left font-medium"
-            >
-              {item}
-              <span>→</span>
-            </button>
-          )
-        )}
+        <input ref={receiptInput} type="file" accept="image/*,.pdf" className="hidden" onChange={(event) => setReceiptName(event.target.files?.[0]?.name || "")} />
+        <button onClick={() => receiptInput.current?.click()} className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left font-medium">
+          Scan receipt <span>→</span>
+        </button>
+        {receiptName && <p className="px-2 text-sm text-emerald-600">Selected: {receiptName}</p>}
+
+        <button onClick={() => setShowContacts((current) => !current)} className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left font-medium">
+          Contacts <span>→</span>
+        </button>
+        {showContacts && <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600"><p className="font-semibold text-slate-900">Your contacts</p><p className="mt-2">Janvi</p><p className="mt-1">Rahul</p><p className="mt-1">Priya</p></div>}
+
+        <button onClick={() => setShowSplit((current) => !current)} className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left font-medium">
+          Split expenses <span>→</span>
+        </button>
+        {showSplit && <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <label className="text-sm font-medium text-slate-600">Expense</label>
+          <select value={splitExpense} onChange={(event) => setSplitExpense(event.target.value)} className="input mt-2">
+            {expenseList.map((expense) => <option key={expense.id || expense.merchant} value={expense.id || expense.merchant}>{expense.merchant} - ₹{expense.amount}</option>)}
+          </select>
+          <label htmlFor="split-people" className="mt-4 block text-sm font-medium text-slate-600">People</label>
+          <input id="split-people" type="number" min="2" value={people} onChange={(event) => setPeople(Math.max(2, Number(event.target.value)))} className="input mt-2" />
+          {selectedExpense && <p className="mt-4 text-sm text-indigo-600">₹{(selectedExpense.amount / people).toFixed(2)} per person</p>}
+        </div>}
+
+        <button onClick={exportCsv} className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 text-left font-medium">
+          Export CSV <span>→</span>
+        </button>
+        {message && <p className="px-2 text-sm text-emerald-600">{message}</p>}
       </div>
     </div>
   );
