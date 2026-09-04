@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const { pool, initDatabase } = require("./config/db");
+const { pool, testDatabaseConnection } = require("./config/db");
 const expenseRoutes = require("./routes/expenses");
 const budgetRoutes = require("./routes/budgets");
 const dashboardRoutes = require("./routes/dashboard");
@@ -38,16 +38,17 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  try {
+    await testDatabaseConnection();
+    console.log("PostgreSQL database connected");
+  } catch (error) {
+    console.error("PostgreSQL connection failed:", error.message);
+  }
+
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
-
-  try {
-    await initDatabase();
-    console.log("Database initialized");
-  } catch (error) {
-    console.error("Database initialization failed:", error.message || error.code || error);
-  }
 }
 
 startServer();
+
