@@ -90,7 +90,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Desktop Sidebar */}
+
       <aside className="fixed left-0 top-0 hidden h-screen w-64 border-r border-slate-200 bg-white p-5 lg:block">
         <div className="mb-10 flex items-center gap-3 px-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-lg font-bold text-white">
@@ -126,9 +126,8 @@ function App() {
         </nav>
       </aside>
 
-      {/* Main */}
       <main className="pb-24 lg:ml-64 lg:pb-8">
-        {/* Header */}
+
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-5 py-4 backdrop-blur lg:px-8">
           <div className="mx-auto flex max-w-7xl items-center justify-between">
             <div>
@@ -165,7 +164,7 @@ function App() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
+
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white px-2 py-2 lg:hidden">
         <div className="flex justify-around">
           {navigation.map((item) => {
@@ -194,7 +193,7 @@ function App() {
 function Dashboard() {
   return (
     <div className="space-y-6">
-      {/* Hero */}
+  
       <div className="rounded-3xl bg-indigo-600 p-6 text-white shadow-sm lg:p-8">
         <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
           <div>
@@ -212,7 +211,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Spent"
@@ -243,7 +241,7 @@ function Dashboard() {
         />
       </div>
 
-      {/* Charts */}
+    
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Spending by category">
           <div className="h-72">
@@ -299,7 +297,7 @@ function Dashboard() {
         </Card>
       </div>
 
-      {/* Budget + Recent */}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Budget vs actual">
           <div className="h-80">
@@ -328,7 +326,6 @@ function Dashboard() {
         </Card>
       </div>
 
-      {/* Insight */}
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
         <p className="text-sm font-semibold text-amber-800">
           Spending insight
