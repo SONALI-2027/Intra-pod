@@ -79,11 +79,119 @@ const expenses = [
   },
 ];
 
+const CREDENTIALS_STORAGE_KEY = "spendly-credentials";
+
+const getSavedCredentials = () => {
+  const saved = localStorage.getItem(CREDENTIALS_STORAGE_KEY);
+
+  if (!saved) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return {};
+  }
+};
+
+const saveCredentialForEmail = (email, password) => {
+  const savedCredentials = getSavedCredentials();
+  const normalizedEmail = email.trim().toLowerCase();
+
+  savedCredentials[normalizedEmail] = password;
+  localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(savedCredentials));
+};
+
+const getAccountDetails = () => {
+  const saved = localStorage.getItem("spendly-account-details");
+
+  if (!saved) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return {};
+  }
+};
+
+const authenticateUser = (email, password) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  const savedCredentials = getSavedCredentials();
+
+  if (!(normalizedEmail in savedCredentials)) {
+    saveCredentialForEmail(normalizedEmail, password);
+    return true;
+  }
+
+  return savedCredentials[normalizedEmail] === password;
+};
+
 function App() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [authenticated, setAuthenticated] = useState(() => localStorage.getItem("spendly-auth") === "true");
   const [expenseList, setExpenseList] = useState(expenses);
   const [budgetList, setBudgetList] = useState(budgetData);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [accountList, setAccountList] = useState(() => {
+    const savedAccounts = JSON.parse(localStorage.getItem("spendly-accounts") || "null");
+    return savedAccounts && savedAccounts.length ? savedAccounts : ["Janvi"];
+  });
+  const [selectedAccount, setSelectedAccount] = useState(() => localStorage.getItem("spendly-selected-account") || "Janvi");
+
+  const handleAddAccount = () => {
+    const name = window.prompt("Enter account name:");
+    const trimmedName = name?.trim();
+
+    if (!trimmedName) {
+      return;
+    }
+
+    const email = window.prompt("Enter account email:");
+    const trimmedEmail = email?.trim();
+
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      window.alert("Please enter a valid email address.");
+      return;
+    }
+
+    const password = window.prompt("Enter password for this account:");
+    const trimmedPassword = password?.trim();
+
+    if (!trimmedPassword || trimmedPassword.length < 6) {
+      window.alert("Password must be at least 6 characters long.");
+      return;
+    }
+
+    const accountDetails = getAccountDetails();
+    const isDuplicateEmail = Object.values(accountDetails).some(
+      (account) => account.email.toLowerCase() === trimmedEmail.toLowerCase()
+    );
+
+    if (isDuplicateEmail) {
+      window.alert("This email already has an account.");
+      return;
+    }
+
+    const nextAccounts = [...new Set([...accountList, trimmedName])];
+    const nextDetails = { ...accountDetails, [trimmedName]: { email: trimmedEmail, password: trimmedPassword } };
+
+    setAccountList(nextAccounts);
+    setSelectedAccount(trimmedName);
+    localStorage.setItem("spendly-accounts", JSON.stringify(nextAccounts));
+    localStorage.setItem("spendly-account-details", JSON.stringify(nextDetails));
+    localStorage.setItem("spendly-selected-account", trimmedName);
+    saveCredentialForEmail(trimmedEmail, trimmedPassword);
+    setAccountMenuOpen(false);
+  };
+
+  const handleAccountSelect = (accountName) => {
+    setSelectedAccount(accountName);
+    localStorage.setItem("spendly-selected-account", accountName);
+    setAccountMenuOpen(false);
+  };
 
   if (!authenticated) {
     return <Login onLogin={() => { localStorage.setItem("spendly-auth", "true"); setAuthenticated(true); }} />;
@@ -158,13 +266,55 @@ function App() {
                 <Bell size={19} />
               </button>
 
-              <button onClick={() => { localStorage.removeItem("spendly-auth"); setAuthenticated(false); }} className="hidden items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 sm:flex">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">
-                  J
-                </div>
-                <span className="text-sm font-medium">Janvi</span>
-                <ChevronDown size={15} />
-              </button>
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setAccountMenuOpen((open) => !open)}
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">
+                    {selectedAccount.slice(0, 1).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium">{selectedAccount}</span>
+                  <ChevronDown size={15} />
+                </button>
+
+                {accountMenuOpen && (
+                  <div className="absolute right-0 z-30 mt-3 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+                    {accountList.map((account) => (
+                      <button
+                        key={account}
+                        onClick={() => handleAccountSelect(account)}
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm ${
+                          selectedAccount === account
+                            ? "bg-indigo-50 text-indigo-600"
+                            : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <span>{account}</span>
+                        {selectedAccount === account && <span className="text-xs font-semibold">Active</span>}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={handleAddAccount}
+                      className="mt-2 flex w-full items-center justify-center rounded-xl border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                    >
+                      + Add account
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem("spendly-auth");
+                        setAuthenticated(false);
+                        setAccountMenuOpen(false);
+                      }}
+                      className="mt-2 w-full rounded-xl px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -225,14 +375,25 @@ function Login({ onLogin }) {
 
   const submitLogin = (event) => {
     event.preventDefault();
-    if (!email.trim() || !email.includes("@")) {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
       setError("Enter a valid email address.");
       return;
     }
+
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
     }
+
+    const isValidLogin = authenticateUser(normalizedEmail, password);
+
+    if (!isValidLogin) {
+      setError("Incorrect password for this email.");
+      return;
+    }
+
     onLogin();
   };
 
