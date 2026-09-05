@@ -4,6 +4,14 @@
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
@@ -17,6 +25,15 @@ select {
   font: inherit;
 }
 
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #020617 inset !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .input {
   width: 100%;
   border: 1px solid #e2e8f0;
@@ -28,4 +45,21 @@ select {
 
 .input:focus {
   border-color: #6366f1;
+}
+
+html.dark .input {
+  background: #020617;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  color: #e2e8f0;
+  background-color: transparent;
+}
+
+html.dark ::placeholder {
+  color: #94a3b8;
 }
